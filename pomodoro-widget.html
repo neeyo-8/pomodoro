@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pomodoro Timer</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #191919;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Press Start 2P', monospace;
+  }
+
+  .widget {
+    background: #2c2c2b;
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    width: 340px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(71,181,109,0.08);
+  }
+
+  .title {
+    font-size: 10px;
+    color: #47b56d;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    opacity: 0.85;
+  }
+
+  .ring-wrap {
+    position: relative;
+    width: 180px;
+    height: 180px;
+  }
+
+  .ring-wrap svg {
+    transform: rotate(-90deg);
+    width: 180px;
+    height: 180px;
+  }
+
+  .ring-bg {
+    fill: none;
+    stroke: #191919;
+    stroke-width: 10;
+  }
+
+  .ring-progress {
+    fill: none;
+    stroke: #47b56d;
+    stroke-width: 10;
+    stroke-linecap: round;
+    stroke-dasharray: 471;
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 1s linear, stroke 0.4s;
+    filter: drop-shadow(0 0 6px rgba(71,181,109,0.6));
+  }
+
+  .ring-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .time-display {
+    font-size: 22px;
+    color: #fff;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  .session-dots {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: #333;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+
+  .dot.done { background: #47b56d; box-shadow: 0 0 5px rgba(71,181,109,0.7); }
+  .dot.break-dot { background: #e67e22; box-shadow: 0 0 5px rgba(230,126,34,0.7); }
+
+  .session-label {
+    font-size: 6px;
+    color: #47b56d;
+    letter-spacing: 1px;
+    opacity: 0.9;
+    text-transform: uppercase;
+  }
+
+  .mode-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+  }
+
+  .checkbox-row input[type="radio"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border: 2px solid #47b56d;
+    border-radius: 3px;
+    background: transparent;
+    cursor: pointer;
+    flex-shrink: 0;
+    position: relative;
+    transition: background 0.2s;
+  }
+
+  .checkbox-row input[type="radio"]:checked {
+    background: #47b56d;
+  }
+
+  .checkbox-row input[type="radio"]:checked::after {
+    content: '';
+    position: absolute;
+    top: 1px; left: 2px;
+    width: 6px; height: 3px;
+    border-left: 2px solid #191919;
+    border-bottom: 2px solid #191919;
+    transform: rotate(-45deg);
+  }
+
+  .checkbox-label {
+    font-size: 7px;
+    color: #ccc;
+    letter-spacing: 1px;
+    cursor: pointer;
+  }
+
+  .dropdown-wrap { padding-left: 24px; }
+
+  select {
+    background: #191919;
+    border: 1px solid #47b56d44;
+    border-radius: 8px;
+    color: #47b56d;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    padding: 8px 30px 8px 10px;
+    width: 100%;
+    cursor: pointer;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2347b56d'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.2s;
+  }
+
+  select:hover, select:focus { border-color: #47b56d; }
+  select option { background: #1e1e1e; color: #47b56d; }
+
+  .custom-wrap {
+    padding-left: 24px;
+    display: flex;
+    gap: 10px;
+  }
+
+  .input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+  }
+
+  .input-label {
+    font-size: 5px;
+    color: #888;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  input[type="number"] {
+    background: #191919;
+    border: 1px solid #47b56d44;
+    border-radius: 8px;
+    color: #47b56d;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    padding: 8px 10px;
+    width: 100%;
+    outline: none;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+
+  input[type="number"]:focus { border-color: #47b56d; }
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button { opacity: 0; }
+
+  .hidden { display: none !important; }
+
+  .btn-start {
+    background: #47b56d;
+    color: #191919;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 14px 0;
+    width: 100%;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.2s;
+    box-shadow: 0 4px 0 #2e7a4a, 0 0 20px rgba(71,181,109,0.2);
+    text-transform: uppercase;
+  }
+
+  .btn-start:hover { background: #55cc7e; }
+  .btn-start:active { transform: translateY(3px); box-shadow: 0 1px 0 #2e7a4a; }
+
+  .btn-start.running {
+    background: #c0392b;
+    color: #fff;
+    box-shadow: 0 4px 0 #7b2418, 0 0 20px rgba(192,57,43,0.2);
+  }
+
+  .btn-start.running:hover { background: #e74c3c; }
+
+  .confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(3px);
+  }
+
+  .confirm-box {
+    background: #2c2c2b;
+    border: 1px solid #47b56d44;
+    border-radius: 16px;
+    padding: 28px 24px;
+    max-width: 280px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+  }
+
+  .confirm-text {
+    font-size: 7px;
+    color: #ccc;
+    line-height: 2;
+    letter-spacing: 1px;
+  }
+
+  .confirm-btns { display: flex; gap: 10px; }
+
+  .confirm-btns button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 6px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: opacity 0.15s;
+  }
+
+  .btn-yes { background: #c0392b; color: #fff; }
+  .btn-no { background: #47b56d; color: #191919; }
+
+  @keyframes flash-green {
+    0%, 100% { box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(71,181,109,0.08); }
+    40% { box-shadow: 0 8px 40px rgba(0,0,0,0.6), 0 0 0 5px rgba(71,181,109,0.5), 0 0 50px rgba(71,181,109,0.3); }
+  }
+
+  .widget.flash { animation: flash-green 0.7s ease; }
+</style>
+</head>
+<body>
+
+<div class="widget" id="widget">
+  <div class="title">&#9201; Pomodoro</div>
+
+  <div class="ring-wrap">
+    <svg viewBox="0 0 160 160">
+      <circle class="ring-bg" cx="80" cy="80" r="75"/>
+      <circle class="ring-progress" id="ring" cx="80" cy="80" r="75"/>
+    </svg>
+    <div class="ring-center">
+      <div class="time-display" id="timeDisplay">25:00</div>
+      <div class="session-dots">
+        <div class="dot" id="d1"></div>
+        <div class="dot" id="d2"></div>
+        <div class="dot" id="d3"></div>
+        <div class="dot" id="d4"></div>
+      </div>
+      <div class="session-label" id="sessionLabel">Focus Session</div>
+    </div>
+  </div>
+
+  <div class="mode-section">
+    <label class="checkbox-row">
+      <input type="radio" name="timerMode" value="default" id="modeDefault" checked>
+      <span class="checkbox-label">Default Timers</span>
+    </label>
+
+    <div class="dropdown-wrap" id="defaultWrap">
+      <select id="presetSelect">
+        <option value="25,5">Standard (25/5)</option>
+        <option value="50,10">Deep Work (50/10)</option>
+        <option value="52,17">"Modern" Productivity (52/17)</option>
+        <option value="90,20">Ultradian Rhythm (90/20)</option>
+        <option value="20,5">Beginner (20/5)</option>
+      </select>
+    </div>
+
+    <label class="checkbox-row">
+      <input type="radio" name="timerMode" value="custom" id="modeCustom">
+      <span class="checkbox-label">Custom Timers</span>
+    </label>
+
+    <div class="custom-wrap hidden" id="customWrap">
+      <div class="input-group">
+        <span class="input-label">Focus (min)</span>
+        <input type="number" id="focusInput" min="1" max="120" value="25">
+      </div>
+      <div class="input-group">
+        <span class="input-label">Break (min)</span>
+        <input type="number" id="breakInput" min="1" max="60" value="5">
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-start" id="mainBtn">&#9654; START</button>
+</div>
+
+<div class="confirm-overlay hidden" id="confirmOverlay">
+  <div class="confirm-box">
+    <div class="confirm-text">STOP THE TIMER?<br><br>Your progress will be lost.</div>
+    <div class="confirm-btns">
+      <button class="btn-yes" id="btnYes">YES, STOP</button>
+      <button class="btn-no" id="btnNo">KEEP GOING</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let ctx;
+
+  function ensureCtx() {
+    if (!ctx) ctx = new AudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+  }
+
+  function beep(freq, type, vol, startT, dur) {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type;
+    o.frequency.setValueAtTime(freq, startT);
+    g.gain.setValueAtTime(vol, startT);
+    g.gain.exponentialRampToValueAtTime(0.001, startT + dur);
+    o.start(startT); o.stop(startT + dur + 0.01);
+  }
+
+  function playSound(type) {
+    ensureCtx();
+    const t = ctx.currentTime;
+    if (type === 'start') {
+      [[330,0],[440,0.1],[523,0.2],[659,0.3]].forEach(([f,d]) => beep(f,'square',0.12,t+d,0.16));
+    } else if (type === 'stop') {
+      [[660,0],[523,0.1],[440,0.2],[330,0.3]].forEach(([f,d]) => beep(f,'square',0.1,t+d,0.15));
+    } else if (type === 'complete') {
+      [[523,0],[659,0.13],[784,0.26],[1047,0.4],[784,0.55],[1047,0.7]].forEach(([f,d]) => beep(f,'square',0.13,t+d,0.18));
+    } else if (type === 'break_end') {
+      [[330,0],[440,0.15],[523,0.3],[659,0.45]].forEach(([f,d]) => beep(f,'triangle',0.14,t+d,0.22));
+    }
+  }
+
+  const CIRCUMFERENCE = 2 * Math.PI * 75;
+  const ring = document.getElementById('ring');
+  const timeDisplay = document.getElementById('timeDisplay');
+  const sessionLabel = document.getElementById('sessionLabel');
+  const mainBtn = document.getElementById('mainBtn');
+  const widget = document.getElementById('widget');
+  const confirmOverlay = document.getElementById('confirmOverlay');
+  const dots = ['d1','d2','d3','d4'].map(id => document.getElementById(id));
+
+  ring.style.strokeDasharray = CIRCUMFERENCE;
+
+  let totalSec = 25 * 60;
+  let remaining = totalSec;
+  let ticker = null;
+  let isRunning = false;
+  let isFocus = true;
+  let sessionsCompleted = 0;
+
+  function getTimings() {
+    const mode = document.querySelector('input[name="timerMode"]:checked').value;
+    if (mode === 'default') {
+      const parts = document.getElementById('presetSelect').value.split(',');
+      return { focus: +parts[0], brk: +parts[1] };
+    }
+    return {
+      focus: parseInt(document.getElementById('focusInput').value) || 25,
+      brk: parseInt(document.getElementById('breakInput').value) || 5
+    };
+  }
+
+  function fmt(s) {
+    return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+  }
+
+  function updateRing() {
+    const frac = remaining / totalSec;
+    ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - frac);
+    const isLow = frac < 0.2 && isFocus;
+    const color = isLow ? '#e67e22' : (isFocus ? '#47b56d' : '#e67e22');
+    const glow = isLow ? 'rgba(230,126,34,0.7)' : (isFocus ? 'rgba(71,181,109,0.6)' : 'rgba(230,126,34,0.6)');
+    ring.style.stroke = color;
+    ring.style.filter = `drop-shadow(0 0 6px ${glow})`;
+    sessionLabel.style.color = isFocus ? '#47b56d' : '#e67e22';
+  }
+
+  function updateDots() {
+    const completed = sessionsCompleted % 4;
+    dots.forEach((d, i) => {
+      d.className = 'dot';
+      if (!isFocus && i === completed % 4) { d.classList.add('break-dot'); return; }
+      if (i < completed) d.classList.add('done');
+    });
+  }
+
+  function loadSession() {
+    const { focus, brk } = getTimings();
+    totalSec = (isFocus ? focus : brk) * 60;
+    remaining = totalSec;
+    timeDisplay.textContent = fmt(remaining);
+    sessionLabel.textContent = isFocus ? 'Focus Session' : 'Break Session';
+    updateRing();
+    updateDots();
+  }
+
+  function setControlsEnabled(on) {
+    document.querySelectorAll('input[name="timerMode"]').forEach(el => el.disabled = !on);
+    ['presetSelect','focusInput','breakInput'].forEach(id => {
+      document.getElementById(id).disabled = !on;
+    });
+  }
+
+  function tick() {
+    remaining--;
+    timeDisplay.textContent = fmt(remaining);
+    updateRing();
+    if (remaining <= 0) {
+      clearInterval(ticker); ticker = null;
+      isRunning = false;
+      widget.classList.add('flash');
+      setTimeout(() => widget.classList.remove('flash'), 800);
+      if (isFocus) { sessionsCompleted++; playSound('complete'); isFocus = false; }
+      else { playSound('break_end'); isFocus = true; }
+      loadSession();
+      mainBtn.innerHTML = '&#9654; START';
+      mainBtn.classList.remove('running');
+      setControlsEnabled(true);
+    }
+  }
+
+  mainBtn.addEventListener('click', () => {
+    if (!isRunning) {
+      loadSession();
+      playSound('start');
+      isRunning = true;
+      mainBtn.innerHTML = '&#9646;&#9646; STOP';
+      mainBtn.classList.add('running');
+      setControlsEnabled(false);
+      ticker = setInterval(tick, 1000);
+    } else {
+      confirmOverlay.classList.remove('hidden');
+    }
+  });
+
+  document.getElementById('btnYes').addEventListener('click', () => {
+    confirmOverlay.classList.add('hidden');
+    clearInterval(ticker); ticker = null;
+    isRunning = false;
+    playSound('stop');
+    isFocus = true;
+    sessionsCompleted = 0;
+    mainBtn.innerHTML = '&#9654; START';
+    mainBtn.classList.remove('running');
+    setControlsEnabled(true);
+    loadSession();
+  });
+
+  document.getElementById('btnNo').addEventListener('click', () => {
+    confirmOverlay.classList.add('hidden');
+  });
+
+  document.querySelectorAll('input[name="timerMode"]').forEach(r => {
+    r.addEventListener('change', () => {
+      const custom = document.getElementById('modeCustom').checked;
+      document.getElementById('defaultWrap').classList.toggle('hidden', custom);
+      document.getElementById('customWrap').classList.toggle('hidden', !custom);
+      if (!isRunning) loadSession();
+    });
+  });
+
+  document.getElementById('presetSelect').addEventListener('change', () => { if (!isRunning) loadSession(); });
+  document.getElementById('focusInput').addEventListener('input', () => { if (!isRunning) loadSession(); });
+  document.getElementById('breakInput').addEventListener('input', () => { if (!isRunning) loadSession(); });
+
+  loadSession();
+</script>
+</body>
+</html>
